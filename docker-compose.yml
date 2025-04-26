@@ -1,0 +1,44 @@
+services:
+  client:
+    build: ./client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+
+  server:
+    build: ./server
+    ports:
+      - "5000:5000"
+
+  postgres:
+    image: postgres:15
+    container_name: webapp-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: spbappadmin
+      POSTGRES_PASSWORD: spbapppassword
+      POSTGRES_DB: spbappdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - webapp-network
+
+  adminer:
+    image: adminer
+    container_name: webapp-adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    networks:
+      - webapp-network
+
+volumes:
+  postgres_data:
+
+networks:
+  webapp-network:
