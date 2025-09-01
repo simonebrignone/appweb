@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -15,12 +8,162 @@ datasource db {
 }
 
 model User {
-  id                Int       @id @default(autoincrement())
-  email             String    @unique
-  password          String
-  role              String    @default("user")
-  permissions       String[]  @default([])
-  createdAt         DateTime  @default(now())
-  resetToken        String?
-  resetTokenExpiry  DateTime?
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
+  password         String
+  username         String   @unique
+  fullname         String
+  roles            String[]
+  refreshToken    String? // 🚨 Questo va aggiunto
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  mustChangePassword Boolean @default(false)
+  createdAt        DateTime @default(now())
+
+  prodotti         Prodotto[]
+  barcodeProdotti BarcodeProdotto[]
+  categorie       Categoria[]
+  negozi         Negozio[]
+  prezziStorici  StoricoPrezzi[]
+  gruppiCreati  GruppoSpesa[]
+  gruppiSpesa   AssociazioneUtenteGruppoSpesa[]
+  spese               Spesa[]               
+  pagamentiRicorrenti PagamentoRicorrente[] 
+}
+
+model Prodotto {
+  id           Int              @id @default(autoincrement())
+  userId       Int
+  nome         String
+  descrizione  String?
+  disabilitato Boolean          @default(false)
+  categoriaId  Int?
+  
+  categoria    Categoria?       @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  barcode      BarcodeProdotto[]
+  storicoPrezzi StoricoPrezzi[]
+  user         User             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  spese               Spesa[]
+  pagamentiRicorrenti PagamentoRicorrente[]
+
+  @@unique([userId, nome])
+}
+
+model BarcodeProdotto {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  prodottoId Int
+  barcode    String
+  prodotto   Prodotto @relation(fields: [prodottoId], references: [id], onDelete: SetNull)
+  user       User     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, barcode])
+}
+
+model Categoria {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  nome        String
+  descrizione String?
+  macroGruppo String?
+  entrata     Boolean     @default(false)
+  prodotti    Prodotto[]
+  user        User        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, nome])
+}
+
+model Negozio {
+  id           Int              @id @default(autoincrement())
+  userId       Int
+  nome         String
+  citta        String?
+  via          String?
+  numeroVia    String?
+  descrizione  String?
+  online       Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  prezzi       StoricoPrezzi[]
+  spese               Spesa[]
+  pagamentiRicorrenti PagamentoRicorrente[]
+}
+
+model StoricoPrezzi {
+  id         Int      @id @default(autoincrement())
+  prodottoId Int
+  negozioId  Int
+  prezzo     Float
+  data       DateTime @default(now())
+  userId     Int
+
+  prodotto  Prodotto @relation(fields: [prodottoId], references: [id], onDelete: Restrict)
+  negozio   Negozio  @relation(fields: [negozioId], references: [id], onDelete: Restrict)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@unique([prodottoId, negozioId, userId])
+}
+
+model GruppoSpesa {
+  id           Int                          @id @default(autoincrement())
+  nome         String
+  descrizione  String?
+  creatoDaId   Int
+  creatoDa     User                         @relation(fields: [creatoDaId], references: [id], onDelete: SetNull)
+  membri       AssociazioneUtenteGruppoSpesa[]
+
+  @@unique([creatoDaId, nome])
+  spese Spesa[]
+}
+
+model AssociazioneUtenteGruppoSpesa {
+  id         Int          @id @default(autoincrement())
+  userId   Int
+  gruppoId   Int
+  active     Boolean      @default(false)
+  admin      Boolean      @default(false)
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  gruppo     GruppoSpesa  @relation(fields: [gruppoId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, gruppoId])
+}
+
+model Spesa {
+  id           Int       @id @default(autoincrement())
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  prodottoId   Int
+  prodotto     Prodotto  @relation(fields: [prodottoId], references: [id], onDelete: SetNull)
+  negozioId    Int?      // opzionale
+  negozio      Negozio?  @relation(fields: [negozioId], references: [id], onDelete: SetNull)
+  gruppoId     Int?      // opzionale
+  gruppo       GruppoSpesa? @relation(fields: [gruppoId], references: [id], onDelete: SetNull)
+  prezzo       Decimal   @db.Decimal(10, 2)
+  data         DateTime  @db.Date
+}
+
+model PagamentoRicorrente {
+  id                  Int       @id @default(autoincrement())
+  userId              Int
+  prodottoId          Int
+  negozioId           Int?
+  prezzo              Decimal   @db.Decimal(10, 2)
+  dataUltimoPagamento DateTime @default(now()) @db.Date
+  dataProssimoPagamento DateTime @db.Date
+  deltaFrequenza      Frequenza
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  negozio     Negozio?   @relation(fields: [negozioId], references: [id], onDelete: SetNull)
+  prodotto    Prodotto  @relation(fields: [prodottoId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, prodottoId, negozioId])
+  @@map("Pagamenti_Ricorrenti")
+}
+
+enum Frequenza {
+  giornaliero
+  settimanale
+  mensile
+  annuale
 }

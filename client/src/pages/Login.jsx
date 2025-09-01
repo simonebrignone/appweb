@@ -1,54 +1,24 @@
-import React from 'react';
-import { useState } from 'react';
-import axios from '../api/axiosInstance';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+const { login } = useAuth();
+const navigate = useNavigate();
+const location = useLocation();
+const from = location.state?.from?.pathname || '/home';
 
-function Login() {
-  const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const navigate = useNavigate();
+const handleLogin = async () => {
+  try {
+    // Esempio login API (da adattare alla tua api)
+    const res = await axios.post('/api/auth/login', {
+      emailOrUsername,
+      password,
+    });
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
-      login(res.data.token);
-      alert('Login effettuato!');
-      navigate('/dashboard'); // <-- Puoi mettere la pagina che preferisci dopo login
-    } catch (error) {
-      console.error(error);
-      alert('Errore nel login');
-    }
-  };
+    const { accessToken, user } = res.data;
 
-  return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <input 
-          type="email" 
-          placeholder="Email" 
-          value={email} 
-          onChange={(e) => setEmail(e.target.value)} 
-          required
-        /><br/>
-        <input 
-          type="password" 
-          placeholder="Password" 
-          value={password} 
-          onChange={(e) => setPassword(e.target.value)} 
-          required
-        /><br/>
-        <button type="submit">Login</button>
-      </form>
+    // 🚨 🚨 🚨 IMPORTANTE → Passi sia token che user (oggetto completo) 🚨 🚨 🚨
+    login(accessToken, user);
 
-      <p>
-        Password dimenticata? <a href="/forgot-password">Reset Password</a>
-      </p>
-    </div>
-  );
-}
-
-export default Login;
+    navigate(from, { replace: true });
+  } catch (error) {
+    console.error("Errore nel login", error);
+    // Gestisci errore
+  }
+};

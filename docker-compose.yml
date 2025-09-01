@@ -1,15 +1,57 @@
+version: '3.8'
+
 services:
   client:
-    build: ./client
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
     ports:
-      - "3000:3000"
+      - "5173:5173"
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+      - ./client/package.json:/app/package.json
+      - ./client/package-lock.json:/app/package-lock.json
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - NODE_OPTIONS=--openssl-legacy-provider
+    command: npm run dev
+    stdin_open: true
+    tty: true
     depends_on:
       - server
+    networks:
+      - webapp-network
 
   server:
-    build: ./server
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
     ports:
       - "5000:5000"
+    volumes:
+      - ./server:/app:cached
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - webapp-network
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      - redis-data:/data
+    networks:
+      - webapp-network
 
   postgres:
     image: postgres:15
@@ -18,9 +60,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: spbappadmin
-      POSTGRES_PASSWORD: spbapppassword
-      POSTGRES_DB: spbappdb
+      - POSTGRES_USER=spbappadmin
+      - POSTGRES_PASSWORD=spbapppassword
+      - POSTGRES_DB=spbappdb
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -39,6 +81,8 @@ services:
 
 volumes:
   postgres_data:
+  redis-data:
 
 networks:
   webapp-network:
+    driver: bridge

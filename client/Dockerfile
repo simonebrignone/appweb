@@ -13,6 +13,8 @@ RUN npm install
 # Copia tutto il resto del progetto nel container
 COPY . .
 
+# Make sure Tailwind, postcss and config files are in place
+RUN ls -la /app && ls -la /app/src && ls -la /app/postcss.config.js
 # Costruisce la webapp React per produzione
 RUN NODE_OPTIONS=--openssl-legacy-provider npm run build
 

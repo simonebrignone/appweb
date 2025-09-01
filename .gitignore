@@ -1,0 +1,24 @@
+# Node / React
+node_modules/
+.next/
+dist/
+build/
+.turbo/
+.vite/
+
+# Environment & secrets
+.env
+.env.*.local
+*.key
+*.pem
+
+# Logs & junk
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+
+# Docker
+docker-data/
+**/pgdata/

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../api/axiosInstance';
+import { useAxios } from '../api/useAxios';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import PasswordChecklist from 'react-password-checklist';
@@ -16,6 +16,7 @@ function UserManagement() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const axios = useAxios();
 
 
   useEffect(() => {
